@@ -5,12 +5,13 @@
 package com.typesafe.zinc
 
 import java.io.File
-import java.util.{ List => JList }
+import java.util.{List => JList}
 import sbt.inc.ClassfileManager
 import sbt.inc.IncOptions.{ Default => DefaultIncOptions }
 import sbt.Level
 import sbt.Path._
 import scala.collection.JavaConverters._
+import scala.io.Source
 import xsbti.compile.CompileOrder
 
 /**
@@ -267,6 +268,7 @@ object Settings {
     val column = options.map(_.length).max + 2
     println("Usage: %s <options> <sources>" format Setup.Command)
     options foreach { opt => if (opt.extraline) println(); println(opt.usage(column)) }
+    println("\n  @filename will cause the contents of filename to be included in the argument list (one argument per line)")
     println()
   }
 
@@ -276,11 +278,49 @@ object Settings {
   def isOpt(s: String) = s startsWith "-"
 
   /**
+   * Expands all arguments starting with @ to the contents of the
+   * file named like each argument.
+   */
+  private def expandSingleArgfile(arg: String): Seq[String] = {
+    def stripComment(s: String) = s takeWhile (_ != '#')
+
+    val filename = arg stripPrefix "@"
+    val file = new File(filename)
+    if (!file.exists)
+      throw new java.io.FileNotFoundException(s"argument file '${filename}' could not be found")
+
+
+    // TODO(Dave): Ideally should tokenize this string like `scalac`, rather than just splitting on input lines.
+    // `scalac` has an argument tokenizer which it applies to command line arguments, which it _also_ applies
+    // to the contents of the argfile.  This allows spaces in individual argfile lines to not split the line
+    // into multiple arguments, for example.  `zinc` has no such thing, so we're not attempting the
+    // `scalac`-style tokenization of each line in the argfile here.  This (and the use of [[scala.io.Source]]
+    // instead of [[scala.reflect.io.File]] for file reading) is the primary divergence in argfile implementation
+    // from scalac.
+    val source = Source.fromFile(file)
+    // Force the file read (via `.toList`) before the Source is closed.
+    val additionalArgs = try {
+      source.getLines().map(stripComment).filter(_.nonEmpty).toList
+    } finally {
+      source.close
+    }
+    additionalArgs
+  }
+  def expandArguments(args: Seq[String]): Seq[String] = {
+    // expand out @filename to the contents of that filename
+    args.flatMap {
+      case x if x startsWith "@"  => expandSingleArgfile(x)
+      case x                      => Seq(x)
+    }
+  }
+
+  /**
    * Parse all args into a Settings object.
    * Residual args are either unknown options or source files.
    */
   def parse(args: Seq[String]): Parsed[Settings] = {
-    val Parsed(settings, remaining, errors) = Options.parse(Settings(), allOptions, args, stopOnError = false)
+    val Parsed(settings, remaining, errors) =
+      Options.parse(Settings(), allOptions, expandArguments(args), stopOnError = false)
     val (unknown, residual) = remaining partition isOpt
     val sources = residual map (new File(_))
     val unknownErrors = unknown map ("Unknown option: " + _)
