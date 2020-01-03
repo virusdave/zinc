@@ -5,6 +5,11 @@ val zincVersion = s"0.3.$sbtPatchVersion-bw${bwPatchVersion}"
 
 val resolveSbtLocally = settingKey[Boolean]("resolve-sbt-locally")
 
+//enablePlugins(S3Plugin)
+enablePlugins(SbtNativePackager)
+enablePlugins(UniversalPlugin)
+enablePlugins(ReproducibleBuildsPlugin)
+
 lazy val zinc = (project in file(".")).
   settings(inThisBuild(List(
       organization := "com.typesafe.zinc",
@@ -14,7 +19,7 @@ lazy val zinc = (project in file(".")).
     Version.settings,
     Publish.settings,
     Dist.settings,
-    Scriptit.settings,
+//    Scriptit.settings,
     crossPaths := false,
     resolveSbtLocally := false,
     libraryDependencies ++= Seq(

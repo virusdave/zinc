@@ -4,21 +4,21 @@
 
 import sbt._
 import sbt.Keys._
-import sbt.classpath.ClasspathUtilities
+import sbt.internal.inc.classpath.ClasspathUtilities
 import com.typesafe.sbt.SbtNativePackager._
-import com.typesafe.sbt.packager.universal.Keys.{packageZipTarball, stage, stagingDirectory}
-import com.typesafe.sbt.S3Plugin.{ S3, s3Settings }
+import com.typesafe.sbt.packager.universal.UniversalPlugin.autoImport.{packageZipTarball, stage, stagingDirectory}
+//import com.typesafe.sbt.S3Plugin.{ S3, s3Settings }
 
 object Dist {
   val distLibs = taskKey[Seq[Attributed[File]]]("List of dist jars")
   val create = taskKey[File]("Create the distribution")
 
-  lazy val settings: Seq[Setting[_]] = distSettings ++ s3PublishSettings
+  lazy val settings: Seq[Setting[_]] = distSettings //++ s3PublishSettings
 
-  lazy val distSettings: Seq[Setting[_]] = packagerSettings ++ Seq(
+  lazy val distSettings: Seq[Setting[_]] = /*packagerSettings ++*/ Seq(
     publishArtifact in Universal := false,
     distLibs := (fullClasspath in Compile).value.filter(cpElem => ClasspathUtilities.isArchive(cpElem.data)),
-    create := { 
+    create := {
       (stage in Universal).value
       (stagingDirectory in Universal).value
     },
@@ -30,6 +30,9 @@ object Dist {
     }
   )
 
+// NB: We're not trying to publish the zinc artifacts to S3, so i didn't bother to upgrade the s3 publishing-related
+// Sbt plugins to the newer Sbt version
+/*
   lazy val s3PublishSettings: Seq[Setting[_]] = s3Settings ++ Seq(
     mappings in S3.upload := {
       val name = "zinc"
@@ -41,6 +44,7 @@ object Dist {
     S3.progress in S3.upload := true,
     credentials in S3.upload := Seq(Credentials(Path.userHome / ".typesafe-s3-credentials"))
   )
+*/
 
   private def filename(a: Artifact) =
     "lib/" + a.name + a.classifier.map("-"+_).getOrElse("") + "." + a.extension

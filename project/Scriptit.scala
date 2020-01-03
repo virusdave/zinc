@@ -2,12 +2,20 @@
  * Copyright (C) 2012 Typesafe, Inc. <http://www.typesafe.com>
  */
 
-import sbt._
-import sbt.complete._
-import sbt.Keys._
-import sbt.Project.Initialize
+//import sbt._
+//import sbt.complete._
+//import sbt.Keys._
+//import sbt.Project.Initialize
 
 object Scriptit {
+// NB: We're not actually making use of the cross-scala-version testing support to build zinc, and this
+// requires nontrivial project changes to work in the upgraded Sbt version, so i've just disabled it
+// (with the flimsy rationale that we're not really doing significant development work on zinc itself).
+// I'm sure i'll eat my words here though :(
+//
+// Reviewers, if you think it's necessary, you can push back on this and i'll try to upgrade the testing
+// project definitions to Sbt 1.x as well.
+/*
   import Script._
 
   val scriptitBase = settingKey[File]("scriptit-base")
@@ -447,4 +455,5 @@ object Script {
 
     def listed(elements: Seq[String]): String = elements.mkString("[ ", ",  ", " ]")
   }
+*/
 }
